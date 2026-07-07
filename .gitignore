@@ -1,0 +1,21 @@
+node_modules
+dist
+dist-ssr
+
+# Biến môi trường / bí mật (KHÔNG commit)
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel
+
+# Dữ liệu nguồn cá nhân (không cần cho app)
+*.xlsx
+Lịch thuê lớp Tháng 7.xlsx
+
+# Log / hệ thống
+*.log
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
