@@ -68,11 +68,6 @@ export function fmtTime(t) {
 // '14:30:00' -> '14:30' (cho input type=time)
 export const toHM = (t) => (t ? t.slice(0, 5) : '')
 
-// Số giờ giữa 2 mốc 'HH:MM'
-export function durationHours(start, end) {
-  return Math.max(0, (timeToMinutes(end) - timeToMinutes(start)) / 60)
-}
-
 // 'HH:MM' + số phút -> 'HH:MM'
 export function addMinutesToTime(hhmm, mins) {
   const total = timeToMinutes(hhmm) + (Number(mins) || 0)

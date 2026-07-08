@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Modal from './Modal'
+import ColorSwatches from './ColorSwatches'
 import { useData } from '../context/DataContext'
 import { RENTER_COLORS } from '../lib/constants'
 
@@ -141,11 +142,7 @@ export default function RenterModal({ renter, onClose }) {
 
           <div className="field full">
             <label>Màu nhận diện</label>
-            <div className="color-swatches">
-              {RENTER_COLORS.map((c) => (
-                <button key={c} type="button" className={'swatch' + (color === c ? ' active' : '')} style={{ background: c }} onClick={() => setColor(c)} aria-label={c} />
-              ))}
-            </div>
+            <ColorSwatches value={color} onChange={setColor} />
           </div>
           {err && <div className="form-error full">{err}</div>}
         </div>

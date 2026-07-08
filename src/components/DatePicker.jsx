@@ -1,48 +1,26 @@
-import { useEffect, useRef, useState } from 'react'
-import { parseISODate, toISODate, addDays, pad2 } from '../lib/date'
+import { useState } from 'react'
+import { parseISODate, toISODate, addDays, pad2, startOfDay, isSameDay } from '../lib/date'
+import { usePopover } from '../lib/usePopover'
 
 const WD = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
-const midnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 const fmt = (v) => {
   if (!v) return ''
   const d = parseISODate(v)
   return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`
 }
-const same = (a, b) =>
-  a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 
 export default function DatePicker({ value, onChange, min, placeholder = 'Chọn ngày' }) {
-  const ref = useRef(null)
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ left: 0, top: 0 })
+  const { ref, open, setOpen, pos, openPop } = usePopover(268, 336)
   const b0 = value ? parseISODate(value) : new Date()
   const [view, setView] = useState({ y: b0.getFullYear(), m: b0.getMonth() })
 
-  useEffect(() => {
-    if (!open) return
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    const onKey = (e) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  function openPop() {
-    const r = ref.current.getBoundingClientRect()
+  function openCalendar() {
     const b = value ? parseISODate(value) : new Date()
     setView({ y: b.getFullYear(), m: b.getMonth() })
-    const W = 268, H = 336
-    let left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8))
-    let top = r.bottom + 6
-    if (window.innerHeight - r.bottom < H + 12) top = Math.max(8, r.top - H - 6)
-    setPos({ left, top })
-    setOpen(true)
+    openPop()
   }
 
-  const minD = min ? midnight(parseISODate(min)) : null
+  const minD = min ? startOfDay(parseISODate(min)) : null
   const sel = value ? parseISODate(value) : null
   const today = new Date()
 
@@ -52,7 +30,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Chọn
   const cells = Array.from({ length: 42 }, (_, i) => addDays(start, i))
 
   function pick(d) {
-    if (minD && midnight(d) < minD) return
+    if (minD && startOfDay(d) < minD) return
     onChange(toISODate(d))
     setOpen(false)
   }
@@ -61,7 +39,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Chọn
 
   return (
     <div className="datepicker" ref={ref}>
-      <button type="button" className={'dp-trigger' + (value ? '' : ' empty')} onClick={() => (open ? setOpen(false) : openPop())}>
+      <button type="button" className={'dp-trigger' + (value ? '' : ' empty')} onClick={() => (open ? setOpen(false) : openCalendar())}>
         <span>{value ? fmt(value) : placeholder}</span>
         <span className="dp-cal" aria-hidden>🗓️</span>
       </button>
@@ -77,13 +55,13 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Chọn
           <div className="dp-grid">
             {cells.map((d, i) => {
               const other = d.getMonth() !== view.m
-              const disabled = minD && midnight(d) < minD
+              const disabled = minD && startOfDay(d) < minD
               return (
                 <button
                   key={i}
                   type="button"
                   disabled={disabled}
-                  className={'dp-day' + (other ? ' other' : '') + (same(d, sel) ? ' sel' : '') + (same(d, today) ? ' today' : '') + (disabled ? ' disabled' : '')}
+                  className={'dp-day' + (other ? ' other' : '') + (sel && isSameDay(d, sel) ? ' sel' : '') + (isSameDay(d, today) ? ' today' : '') + (disabled ? ' disabled' : '')}
                   onClick={() => pick(d)}
                 >
                   {d.getDate()}

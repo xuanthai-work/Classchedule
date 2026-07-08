@@ -165,7 +165,7 @@ export default function Calendar() {
       {/* ===== MÁY TÍNH: lưới tuần (tự vừa màn hình) ===== */}
       {isDesktop ? (
         <div className="cal-grid-wrap" ref={wrapRef} style={wrapMaxH ? { maxHeight: wrapMaxH } : undefined}>
-          <div className="cal-grid" style={{ '--slot-h': slotPx + 'px', gridTemplateColumns: gridCols }}>
+          <div className="cal-grid" style={{ gridTemplateColumns: gridCols }}>
             <div className="cal-corner" />
             {days.map((d, i) => (
               <div

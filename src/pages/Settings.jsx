@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
+import ColorSwatches from '../components/ColorSwatches'
 import { RENTER_COLORS } from '../lib/constants'
 
 function CaTypeRow({ ca, onSave, onDelete }) {
@@ -20,24 +21,26 @@ function CaTypeRow({ ca, onSave, onDelete }) {
   }
 
   return (
-    <div className="ca-row">
-      <span className="dot lg" style={{ background: color }} />
-      <input className="ca-name-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên ca" />
-      <div className="dur-input">
-        <input type="number" min="0" value={h} onChange={(e) => setH(e.target.value)} /><span>h</span>
-        <input type="number" min="0" max="59" step="5" value={m} onChange={(e) => setM(e.target.value)} /><span>ph</span>
+    <div className="edit-row">
+      <div className="er-name-wrap">
+        <span className="dot lg" style={{ background: color }} />
+        <input className="er-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên ca" />
       </div>
-      <div className="color-swatches sm">
-        {RENTER_COLORS.slice(0, 6).map((c) => (
-          <button key={c} type="button" className={'swatch' + (color === c ? ' active' : '')} style={{ background: c }} onClick={() => setColor(c)} />
-        ))}
+      <div className="er-fields">
+        <div className="dur-input">
+          <input type="number" min="0" value={h} onChange={(e) => setH(e.target.value)} /><span>h</span>
+          <input type="number" min="0" max="59" step="5" value={m} onChange={(e) => setM(e.target.value)} /><span>ph</span>
+        </div>
+        <ColorSwatches value={color} onChange={setColor} count={6} sm />
       </div>
-      <button className="btn btn-sm btn-primary" disabled={!dirty || busy} onClick={save}>{busy ? '…' : 'Lưu'}</button>
-      {confirm ? (
-        <button className="btn btn-sm btn-danger" onClick={() => onDelete(ca.id)}>Chắc chắn?</button>
-      ) : (
-        <button className="icon-btn sm" onClick={() => setConfirm(true)} aria-label="Xoá">✕</button>
-      )}
+      <div className="er-actions">
+        <button className="btn btn-sm btn-primary" disabled={!dirty || busy} onClick={save}>{busy ? '…' : 'Lưu'}</button>
+        {confirm ? (
+          <button className="btn btn-sm btn-danger" onClick={() => onDelete(ca.id)}>Chắc chắn?</button>
+        ) : (
+          <button className="icon-btn sm" onClick={() => setConfirm(true)} aria-label="Xoá">✕</button>
+        )}
+      </div>
     </div>
   )
 }
@@ -55,21 +58,23 @@ function RoomRow({ room, onSave, onDelete }) {
     try { await onDelete(room.id) } catch { setErr('Phòng còn buổi thuê'); setBusy(false); setConfirm(false) }
   }
   return (
-    <div className="room-row">
-      <span className="dot lg" style={{ background: color }} />
-      <input className="room-name-input" value={name} onChange={(e) => setName(e.target.value)} />
-      <div className="color-swatches sm">
-        {RENTER_COLORS.slice(0, 6).map((c) => (
-          <button key={c} type="button" className={'swatch' + (color === c ? ' active' : '')} style={{ background: c }} onClick={() => setColor(c)} />
-        ))}
+    <div className="edit-row">
+      <div className="er-name-wrap">
+        <span className="dot lg" style={{ background: color }} />
+        <input className="er-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên phòng" />
       </div>
-      <button className="btn btn-sm btn-primary" disabled={!dirty || busy} onClick={save}>{busy ? '…' : 'Lưu'}</button>
-      {confirm ? (
-        <button className="btn btn-sm btn-danger" onClick={del}>Chắc chắn?</button>
-      ) : (
-        <button className="icon-btn sm" onClick={() => setConfirm(true)} aria-label="Xoá">✕</button>
-      )}
-      {err && <span className="inline-err">{err}</span>}
+      <div className="er-fields">
+        <ColorSwatches value={color} onChange={setColor} count={6} sm />
+      </div>
+      <div className="er-actions">
+        <button className="btn btn-sm btn-primary" disabled={!dirty || busy} onClick={save}>{busy ? '…' : 'Lưu'}</button>
+        {confirm ? (
+          <button className="btn btn-sm btn-danger" onClick={del}>Chắc chắn?</button>
+        ) : (
+          <button className="icon-btn sm" onClick={() => setConfirm(true)} aria-label="Xoá">✕</button>
+        )}
+        {err && <span className="inline-err">{err}</span>}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../context/DataContext'
+import { useIsDesktop } from '../lib/useMediaQuery'
 import { pad2, fmtDayMonth, parseISODate, weekdayShort, fmtTime } from '../lib/date'
 import { computeAmount } from '../lib/bookings'
 import { readableText } from '../lib/constants'
@@ -7,6 +8,7 @@ import { fmtVND } from '../lib/money'
 
 export default function Revenue() {
   const { bookings, caTypes, caTypesById, roomsById, rentersById, priceMap, setPaid, deleteBookings } = useData()
+  const isDesktop = useIsDesktop()
   const now = new Date()
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [confirmClear, setConfirmClear] = useState(false)
@@ -114,7 +116,7 @@ export default function Revenue() {
       )}
       {monthBookings.length === 0 ? (
         <div className="empty">Không có buổi thuê trong tháng này.</div>
-      ) : (
+      ) : isDesktop ? (
         <div className="table-wrap">
           <table className="rev-table">
             <thead>
@@ -145,6 +147,33 @@ export default function Revenue() {
               })}
             </tbody>
           </table>
+        </div>
+      ) : (
+        <div className="rev-cards">
+          {monthBookings.map((b) => {
+            const d = parseISODate(b.date)
+            const ct = caTypesById[b.ca_type_id]
+            const room = roomsById[b.room_id]
+            return (
+              <div key={b.id} className={'rev-card' + (b.paid ? ' is-paid' : '')}>
+                <div className="rc-main">
+                  <div className="rc-name">{rentersById[b.renter_id]?.name || '(?)'}</div>
+                  <div className="rc-meta">{weekdayShort(d)} {fmtDayMonth(d)} · {fmtTime(b.start_time)}</div>
+                  <div className="rc-tags">
+                    <span className="rc-ca">{ct ? `${ct.name}${b.ca_count > 1 ? ` ×${b.ca_count}` : ''}` : '—'}</span>
+                    <span className="room-tag sm" style={{ background: room?.color || '#ccc', color: readableText(room?.color) }}>{room?.name}</span>
+                  </div>
+                </div>
+                <div className="rc-side">
+                  <div className="rc-amt">{fmtVND(computeAmount(b, priceMap))}</div>
+                  <label className="rc-paid checkbox">
+                    <input type="checkbox" checked={b.paid} onChange={(e) => setPaid(b.id, e.target.checked)} />
+                    <span>Đã thu</span>
+                  </label>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

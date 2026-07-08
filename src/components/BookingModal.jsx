@@ -65,10 +65,10 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
       } else if (recurring) {
         const seriesId = crypto.randomUUID()
         const rows = []
-        const end = parseISODate(untilDate)
+        const lastDate = parseISODate(untilDate)
         let d = parseISODate(date)
         let guard = 0
-        while (d <= end && guard < 400) {
+        while (d <= lastDate && guard < 400) {
           rows.push({ ...base, date: toISODate(d), series_id: seriesId })
           d = addDays(d, 7)
           guard++

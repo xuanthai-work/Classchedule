@@ -7,13 +7,6 @@ export function computeAmount(booking, priceMap) {
   return price * (booking.ca_count || 1)
 }
 
-// Tổng thời lượng buổi (phút) = thời lượng loại ca × số ca
-export function bookingDurationMin(booking, caTypesById) {
-  const ct = caTypesById[booking.ca_type_id]
-  if (!ct) return 0
-  return Number(ct.duration_min || 0) * (booking.ca_count || 1)
-}
-
 // Trả về Set id các buổi bị trùng (cùng phòng, cùng ngày, giờ chồng nhau)
 export function findConflicts(bookings) {
   const conflicts = new Set()

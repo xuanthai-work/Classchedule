@@ -15,4 +15,6 @@ export function useMediaQuery(query) {
   return matches
 }
 
+// Ngưỡng desktop = 820px. PHẢI khớp với các @media trong styles.css
+// (desktop: min-width:820px, mobile: max-width:819.98px) để JS và CSS đổi bố cục cùng lúc.
 export const useIsDesktop = () => useMediaQuery('(min-width: 820px)')

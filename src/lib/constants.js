@@ -24,12 +24,6 @@ export function readableText(hex) {
   return luminance > 0.62 ? '#1f2a33' : '#ffffff'
 }
 
-// Màu mặc định cho 2 phòng
-export const ROOM_COLORS = {
-  small: '#0E7C6B',
-  big: '#B8720F',
-}
-
 // Khung giờ hiển thị trên lưới lịch (phút)
 export const DAY_START_MIN = 7 * 60 // 07:00
 export const DAY_END_MIN = 22 * 60 // 22:00

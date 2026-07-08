@@ -14,7 +14,7 @@ const noAccent = (s) =>
     .toLowerCase()
 
 export default function Renters() {
-  const { renters, bookings, caTypes, rooms, priceMap } = useData()
+  const { renters, bookings, caTypes, rooms, priceMap, getPrice } = useData()
   const [modal, setModal] = useState(null)
   const [q, setQ] = useState('')
 
@@ -33,9 +33,7 @@ export default function Renters() {
   function priceSummary(renterId) {
     const parts = []
     for (const ct of caTypes) {
-      const ps = rooms
-        .map((rm) => priceMap[`${renterId}__${ct.id}__${rm.id}`])
-        .filter((v) => v && v > 0)
+      const ps = rooms.map((rm) => getPrice(renterId, ct.id, rm.id)).filter((v) => v > 0)
       if (!ps.length) continue
       const mn = Math.min(...ps)
       const mx = Math.max(...ps)
