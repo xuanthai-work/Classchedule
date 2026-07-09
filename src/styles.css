@@ -305,12 +305,10 @@ code { font-family: var(--mono); font-size: .9em; background: var(--surface-3); 
 .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .kpi.good .kpi-value { color: var(--good); }
 .kpi.warn .kpi-value { color: var(--warn); }
-.rev-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
-/* Mobile: KPI xếp gọn (Tổng full ngang, Đã thu / Chưa thu chia đôi), 2 bảng xếp dọc */
+/* Mobile: KPI xếp gọn (Tổng full ngang, Đã thu / Chưa thu chia đôi) */
 @media (max-width: 819.98px) {
   .kpi-row { grid-template-columns: 1fr 1fr; }
   .kpi-row .kpi:first-child { grid-column: 1 / -1; }
-  .rev-cols { grid-template-columns: 1fr; }
 }
 /* Mobile: chi tiết buổi thuê dạng thẻ thay cho bảng */
 .rev-cards { display: flex; flex-direction: column; gap: 8px; }
@@ -319,14 +317,13 @@ code { font-family: var(--mono); font-size: .9em; background: var(--surface-3); 
 .rev-card.is-paid { opacity: .65; }
 .rev-card .rc-main { flex: 1; min-width: 0; }
 .rc-name { font-weight: 700; font-size: 15px; }
-.rc-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .rc-tags { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
 .rc-ca { font-size: 12px; color: var(--ink-soft); }
 .rc-side { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
 .rc-amt { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
 .rc-paid { font-size: 12px; color: var(--muted); }
 .rc-paid input { width: 16px; height: 16px; accent-color: var(--good); }
-.rev-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow-sm); }
+.rev-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow-sm); margin-bottom: 18px; }
 .rev-panel h3 { font-size: 14px; margin-bottom: 10px; }
 .breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
 .breakdown-row:last-child { border-bottom: none; }
@@ -336,7 +333,6 @@ code { font-family: var(--mono); font-size: .9em; background: var(--surface-3); 
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .clear-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--crit-bg);
   border: 1px solid var(--crit); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 13.5px; }
-.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
 .rev-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
 .rev-table th, .rev-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); }
 .rev-table th { background: var(--surface-3); font-size: 12px; color: var(--muted); font-weight: 700; position: sticky; top: 0; }
@@ -348,6 +344,34 @@ code { font-family: var(--mono); font-size: .9em; background: var(--surface-3); 
 .rev-table tr.is-paid { color: var(--muted); }
 .rev-table tr:last-child td { border-bottom: none; }
 .rev-table input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--good); }
+
+/* ---------- Chi tiết theo giáo viên (thẻ bấm mở popup) ---------- */
+.teacher-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.ta-card { display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); text-align: left; cursor: pointer; transition: border-color .12s ease, background .12s ease, box-shadow .12s ease; }
+.ta-card:hover { background: var(--surface-2); border-color: var(--teal); box-shadow: var(--shadow); }
+.ta-name { font-weight: 700; font-size: 15px; flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ta-count { flex: none; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ta-amt { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.ta-total { font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+.ta-unpaid { font-size: 11.5px; font-weight: 600; color: var(--warn); }
+.ta-done { font-size: 11.5px; color: var(--muted); }
+.ta-chev { flex: none; font-size: 22px; color: var(--muted); line-height: 1; }
+
+/* Popup chi tiết giáo viên */
+.rev-modal-sum { display: flex; gap: 10px; margin-bottom: 16px; }
+.rms-item { flex: 1; background: var(--surface-2); border-radius: 12px; padding: 11px 8px; text-align: center; min-width: 0; }
+.rms-label { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 3px; }
+.rms-value { font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums; }
+.rms-value.warn { color: var(--warn); }
+.rms-value.good { color: var(--good); }
+.rev-modal-detail { overflow-x: auto; }
+.rev-modal-detail .rev-table.compact { width: 100%; min-width: 0; }
+.rev-modal-detail .rev-table.compact th { position: static; }
+
+/* Popup rộng cho bảng chi tiết — chỉ ở desktop (820px), khớp isDesktop khi bảng hiện */
+@media (min-width: 820px) {
+  .modal.modal-wide { max-width: 640px; }
+}
 
 /* ---------- Settings ---------- */
 .settings-block { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
@@ -382,6 +406,7 @@ code { font-family: var(--mono); font-size: .9em; background: var(--surface-3); 
   .kpi-value { font-size: 18px; }
   .cal-nav { flex-wrap: wrap; }
   .week-label { font-size: 13px; }
+  .teacher-list { grid-template-columns: 1fr; gap: 8px; }
 }
 .computed-end { padding: 9px 11px; background: var(--surface-3); border: 1px solid var(--line); border-radius: 9px; font-weight: 600; }
 .inline-err { font-size: 12px; color: var(--crit); }

@@ -5,6 +5,7 @@ import { pad2, fmtDayMonth, parseISODate, weekdayShort, fmtTime } from '../lib/d
 import { computeAmount } from '../lib/bookings'
 import { readableText } from '../lib/constants'
 import { fmtVND } from '../lib/money'
+import Modal from '../components/Modal'
 
 export default function Revenue() {
   const { bookings, caTypes, caTypesById, roomsById, rentersById, priceMap, setPaid, deleteBookings } = useData()
@@ -12,6 +13,7 @@ export default function Revenue() {
   const now = new Date()
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [confirmClear, setConfirmClear] = useState(false)
+  const [openRid, setOpenRid] = useState(null)
 
   const prefix = `${ym.y}-${pad2(ym.m + 1)}`
   const monthBookings = useMemo(
@@ -25,25 +27,101 @@ export default function Revenue() {
   const summary = useMemo(() => {
     let total = 0, collected = 0
     const byCa = {}
-    const byRenter = {}
     for (const b of monthBookings) {
       const amt = computeAmount(b, priceMap)
       total += amt
       if (b.paid) collected += amt
       byCa[b.ca_type_id] = (byCa[b.ca_type_id] || 0) + amt
-      byRenter[b.renter_id] = (byRenter[b.renter_id] || 0) + amt
     }
-    return { total, collected, unpaid: total - collected, count: monthBookings.length, byCa, byRenter }
+    return { total, collected, unpaid: total - collected, count: monthBookings.length, byCa }
   }, [monthBookings, priceMap])
 
-  const topRenters = Object.entries(summary.byRenter).sort((a, b) => b[1] - a[1])
+  // Gom buổi thuê theo giáo viên (đã sắp theo ngày), tính tổng + phần chưa thu, xếp giảm dần
+  const groups = useMemo(() => {
+    const map = new Map()
+    for (const b of monthBookings) {
+      if (!map.has(b.renter_id)) map.set(b.renter_id, [])
+      map.get(b.renter_id).push(b)
+    }
+    return [...map.entries()]
+      .map(([rid, items]) => {
+        let total = 0, unpaid = 0
+        for (const b of items) {
+          const amt = computeAmount(b, priceMap)
+          total += amt
+          if (!b.paid) unpaid += amt
+        }
+        return { rid, items, total, unpaid, count: items.length }
+      })
+      .sort((a, b) => b.total - a.total)
+  }, [monthBookings, priceMap])
 
   const paidInMonth = monthBookings.filter((b) => b.paid)
-  function prevMonth() { setConfirmClear(false); setYm(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })) }
-  function nextMonth() { setConfirmClear(false); setYm(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 })) }
+  const openGroup = groups.find((g) => g.rid === openRid)
+  const hasUnpaid = openGroup?.unpaid > 0
+  function resetMonth(next) { setConfirmClear(false); setOpenRid(null); setYm(next) }
+  function prevMonth() { resetMonth(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })) }
+  function nextMonth() { resetMonth(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 })) }
   async function clearPaid() {
     await deleteBookings(paidInMonth.map((b) => b.id))
     setConfirmClear(false)
+  }
+
+  function detailBody(items) {
+    if (isDesktop) {
+      return (
+        <table className="rev-table compact">
+          <thead>
+            <tr><th>Ngày</th><th>Ca</th><th>Phòng</th><th className="num">Tiền</th><th className="center">Đã thu</th></tr>
+          </thead>
+          <tbody>
+            {items.map((b) => {
+              const d = parseISODate(b.date)
+              const ct = caTypesById[b.ca_type_id]
+              const room = roomsById[b.room_id]
+              return (
+                <tr key={b.id} className={b.paid ? 'is-paid' : ''}>
+                  <td className="nowrap">{weekdayShort(d)} {fmtDayMonth(d)}<span className="td-time"> {fmtTime(b.start_time)}</span></td>
+                  <td className="nowrap">{ct ? `${ct.name}${b.ca_count > 1 ? ` ×${b.ca_count}` : ''}` : '—'}</td>
+                  <td>
+                    <span className="room-tag sm" style={{ background: room?.color || '#ccc', color: readableText(room?.color) }}>{room?.name}</span>
+                  </td>
+                  <td className="num strong">{fmtVND(computeAmount(b, priceMap))}</td>
+                  <td className="center"><input type="checkbox" checked={b.paid} onChange={(e) => setPaid(b.id, e.target.checked)} /></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )
+    }
+    return (
+      <div className="rev-cards">
+        {items.map((b) => {
+          const d = parseISODate(b.date)
+          const ct = caTypesById[b.ca_type_id]
+          const room = roomsById[b.room_id]
+          return (
+            <div key={b.id} className={'rev-card' + (b.paid ? ' is-paid' : '')}>
+              <div className="rc-main">
+                <div className="rc-name">{weekdayShort(d)} {fmtDayMonth(d)} · {fmtTime(b.start_time)}</div>
+                <div className="rc-tags">
+                  <span className="rc-ca">{ct ? `${ct.name}${b.ca_count > 1 ? ` ×${b.ca_count}` : ''}` : '—'}</span>
+                  <span className="room-tag sm" style={{ background: room?.color || '#ccc', color: readableText(room?.color) }}>{room?.name}</span>
+                </div>
+              </div>
+              <div className="rc-side">
+                <div className="rc-amt">{fmtVND(computeAmount(b, priceMap))}</div>
+                <label className="rc-paid checkbox">
+                  <input type="checkbox" checked={b.paid} onChange={(e) => setPaid(b.id, e.target.checked)} />
+                  <span>Đã thu</span>
+                </label>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
   }
 
   return (
@@ -73,33 +151,18 @@ export default function Revenue() {
         </div>
       </div>
 
-      <div className="rev-cols">
-        <div className="rev-panel">
-          <h3>Theo giáo viên</h3>
-          {topRenters.length === 0 && <div className="empty sm">Chưa có dữ liệu.</div>}
-          {topRenters.map(([rid, amt]) => (
-            <div key={rid} className="breakdown-row">
-              <span className="bd-name">
-                <span className="dot" style={{ background: rentersById[rid]?.color || '#888' }} />
-                {rentersById[rid]?.name || '(?)'}
-              </span>
-              <span className="bd-amt">{fmtVND(amt)}</span>
-            </div>
-          ))}
-        </div>
-        <div className="rev-panel">
-          <h3>Theo loại ca</h3>
-          {caTypes.map((c) => (
-            <div key={c.id} className="breakdown-row">
-              <span className="bd-name"><span className="dot" style={{ background: c.color }} />{c.name}</span>
-              <span className="bd-amt">{fmtVND(summary.byCa[c.id] || 0)}</span>
-            </div>
-          ))}
-        </div>
+      <div className="rev-panel">
+        <h3>Theo loại ca</h3>
+        {caTypes.map((c) => (
+          <div key={c.id} className="breakdown-row">
+            <span className="bd-name"><span className="dot" style={{ background: c.color }} />{c.name}</span>
+            <span className="bd-amt">{fmtVND(summary.byCa[c.id] || 0)}</span>
+          </div>
+        ))}
       </div>
 
       <div className="section-head">
-        <h3 className="section-title">Chi tiết buổi thuê</h3>
+        <h3 className="section-title">Chi tiết theo giáo viên</h3>
         {paidInMonth.length > 0 && !confirmClear && (
           <button className="btn btn-sm btn-danger-ghost" onClick={() => setConfirmClear(true)}>
             🗑️ Xóa {paidInMonth.length} buổi đã thu
@@ -114,67 +177,52 @@ export default function Revenue() {
           <button className="btn btn-sm btn-danger" onClick={clearPaid}>Xóa</button>
         </div>
       )}
-      {monthBookings.length === 0 ? (
+
+      {groups.length === 0 ? (
         <div className="empty">Không có buổi thuê trong tháng này.</div>
-      ) : isDesktop ? (
-        <div className="table-wrap">
-          <table className="rev-table">
-            <thead>
-              <tr>
-                <th>Ngày</th><th>Giáo viên</th><th>Ca</th><th>Phòng</th><th className="num">Tiền</th><th className="center">Đã thu</th>
-              </tr>
-            </thead>
-            <tbody>
-              {monthBookings.map((b) => {
-                const d = parseISODate(b.date)
-                const ct = caTypesById[b.ca_type_id]
-                return (
-                  <tr key={b.id} className={b.paid ? 'is-paid' : ''}>
-                    <td className="nowrap">{weekdayShort(d)} {fmtDayMonth(d)}<span className="td-time"> {fmtTime(b.start_time)}</span></td>
-                    <td>{rentersById[b.renter_id]?.name || '(?)'}</td>
-                    <td className="nowrap">{ct ? `${ct.name}${b.ca_count > 1 ? ` ×${b.ca_count}` : ''}` : '—'}</td>
-                    <td>
-                      <span className="room-tag sm" style={{ background: roomsById[b.room_id]?.color || '#ccc', color: readableText(roomsById[b.room_id]?.color) }}>
-                        {roomsById[b.room_id]?.name}
-                      </span>
-                    </td>
-                    <td className="num strong">{fmtVND(computeAmount(b, priceMap))}</td>
-                    <td className="center">
-                      <input type="checkbox" checked={b.paid} onChange={(e) => setPaid(b.id, e.target.checked)} />
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
       ) : (
-        <div className="rev-cards">
-          {monthBookings.map((b) => {
-            const d = parseISODate(b.date)
-            const ct = caTypesById[b.ca_type_id]
-            const room = roomsById[b.room_id]
+        <div className="teacher-list">
+          {groups.map((g) => {
+            const r = rentersById[g.rid]
             return (
-              <div key={b.id} className={'rev-card' + (b.paid ? ' is-paid' : '')}>
-                <div className="rc-main">
-                  <div className="rc-name">{rentersById[b.renter_id]?.name || '(?)'}</div>
-                  <div className="rc-meta">{weekdayShort(d)} {fmtDayMonth(d)} · {fmtTime(b.start_time)}</div>
-                  <div className="rc-tags">
-                    <span className="rc-ca">{ct ? `${ct.name}${b.ca_count > 1 ? ` ×${b.ca_count}` : ''}` : '—'}</span>
-                    <span className="room-tag sm" style={{ background: room?.color || '#ccc', color: readableText(room?.color) }}>{room?.name}</span>
-                  </div>
-                </div>
-                <div className="rc-side">
-                  <div className="rc-amt">{fmtVND(computeAmount(b, priceMap))}</div>
-                  <label className="rc-paid checkbox">
-                    <input type="checkbox" checked={b.paid} onChange={(e) => setPaid(b.id, e.target.checked)} />
-                    <span>Đã thu</span>
-                  </label>
-                </div>
-              </div>
+              <button key={g.rid} className="ta-card" onClick={() => setOpenRid(g.rid)}>
+                <span className="dot lg" style={{ background: r?.color || '#888' }} />
+                <span className="ta-name">{r?.name || '(?)'}</span>
+                <span className="ta-count">{g.count} buổi</span>
+                <span className="spacer" />
+                <span className="ta-amt">
+                  <span className="ta-total">{fmtVND(g.total)}</span>
+                  {g.unpaid > 0
+                    ? <span className="ta-unpaid">Chưa thu {fmtVND(g.unpaid)}</span>
+                    : <span className="ta-done">Đã thu đủ</span>}
+                </span>
+                <span className="ta-chev" aria-hidden="true">›</span>
+              </button>
             )
           })}
         </div>
+      )}
+
+      {openGroup && (
+        <Modal className="modal-wide" title={rentersById[openGroup.rid]?.name || '(?)'} onClose={() => setOpenRid(null)}>
+          <div className="rev-modal-sum">
+            <div className="rms-item">
+              <span className="rms-label">Số buổi</span>
+              <span className="rms-value">{openGroup.count}</span>
+            </div>
+            <div className="rms-item">
+              <span className="rms-label">Tổng tiền</span>
+              <span className="rms-value">{fmtVND(openGroup.total)}</span>
+            </div>
+            <div className="rms-item">
+              <span className="rms-label">{hasUnpaid ? 'Chưa thu' : 'Trạng thái'}</span>
+              <span className={'rms-value ' + (hasUnpaid ? 'warn' : 'good')}>
+                {hasUnpaid ? fmtVND(openGroup.unpaid) : 'Đã thu đủ'}
+              </span>
+            </div>
+          </div>
+          <div className="rev-modal-detail">{detailBody(openGroup.items)}</div>
+        </Modal>
       )}
     </div>
   )
