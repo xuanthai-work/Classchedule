@@ -495,4 +495,28 @@ code { font-family: var(--mono); font-size: .9em; background: var(--surface-3); 
 .confirm-box p { margin: 6px 0; }
 .confirm-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
 
+.confirm-actions-col { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; text-align: left; }
+.confirm-summary { margin-top: 16px; padding: 11px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45;
+  background: var(--teal-bg); color: var(--teal-strong); border: 1px solid var(--teal); }
+.confirm-summary.is-danger { background: var(--crit-bg); color: var(--crit); border-color: var(--crit); font-weight: 600; }
+.choice-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  width: 100%; padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  cursor: pointer; text-align: left; transition: all .15s ease;
+}
+.choice-btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--muted); }
+.choice-btn:disabled { opacity: .5; cursor: default; }
+.choice-btn .choice-title { font-weight: 600; font-size: 14px; }
+.choice-btn .choice-sub { font-size: 12.5px; color: var(--muted); font-weight: normal; line-height: 1.4; }
+.choice-btn.choice-primary { background: var(--teal-bg); border-color: var(--teal); }
+.choice-btn.choice-primary:hover:not(:disabled) { background: var(--teal-bg); filter: brightness(.95); }
+.choice-btn.choice-primary .choice-title { color: var(--teal-strong); }
+.choice-btn.choice-danger { background: var(--crit-bg); border-color: var(--crit); }
+.choice-btn.choice-danger:hover:not(:disabled) { background: var(--crit-bg); filter: brightness(.95); }
+.choice-btn.choice-danger .choice-title { color: var(--crit); }
+.choice-btn.choice-danger-subtle { border-color: transparent; background: transparent; }
+.choice-btn.choice-danger-subtle:hover:not(:disabled) { background: var(--crit-bg); }
+.choice-btn.choice-danger-subtle .choice-title { color: var(--crit); }
+
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

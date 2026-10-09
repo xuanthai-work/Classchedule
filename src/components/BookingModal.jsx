@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Modal from './Modal'
 import DatePicker from './DatePicker'
 import TimePicker from './TimePicker'
 import { useData } from '../context/DataContext'
-import { toISODate, parseISODate, addDays, addMinutesToTime, fmtDuration, fmtTime } from '../lib/date'
+import { toISODate, parseISODate, addDays, addMinutesToTime, fmtDuration, fmtTime, fmtDayMonth } from '../lib/date'
 import { fmtVND } from '../lib/money'
 import { RENTER_COLORS } from '../lib/constants'
+
+const GUARD_MS = 400
 
 export default function BookingModal({ booking, presetDate, presetRoomId, presetStart, onClose }) {
   const data = useData()
@@ -27,7 +29,34 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
   const [showNewRenter, setShowNewRenter] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Luồng xác nhận 2 bước: 'form' -> 'scope' -> 'confirm'
+  const [step, setStep] = useState('form')
+  const [opKind, setOpKind] = useState(null) // 'delete' | 'save'
+  const [opScope, setOpScope] = useState(null) // 'one' | 'from_date' | 'series' | 'all'
+
+  // Click Guard: chống ghost-click / click trễ trong 400ms đầu khi popup mở ra
+  const confirmOpenedAt = useRef(0)
+  const guardTimer = useRef(null)
+  const [guardLocked, setGuardLocked] = useState(false)
+
+  useEffect(() => () => { if (guardTimer.current) clearTimeout(guardTimer.current) }, [])
+
+  function armGuard() {
+    confirmOpenedAt.current = Date.now()
+    setGuardLocked(true)
+    if (guardTimer.current) clearTimeout(guardTimer.current)
+    guardTimer.current = setTimeout(() => setGuardLocked(false), GUARD_MS)
+  }
+  const guardHit = () => Date.now() - confirmOpenedAt.current < GUARD_MS
+
+  const hasOtherInSeries = useMemo(() => {
+    if (!booking?.series_id) return false
+    return data.bookings.some((b) => b.series_id === booking.series_id && b.id !== booking.id)
+  }, [booking, data.bookings])
+
+  const hasSeriesScope = Boolean(booking?.series_id && hasOtherInSeries)
+  const dLabel = booking ? fmtDayMonth(parseISODate(booking.date)) : ''
 
   const ct = caTypesById[caTypeId]
   const durMin = ct ? Number(ct.duration_min || 0) * caCount : 0
@@ -46,7 +75,14 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
     setShowNewRenter(false)
   }
 
-  async function onSave() {
+  function resetToForm() {
+    setErr('')
+    setStep('form')
+    setOpKind(null)
+    setOpScope(null)
+  }
+
+  function onSave() {
     setErr('')
     if (!renterId) return setErr('Hãy chọn người thuê.')
     if (!roomId) return setErr('Hãy chọn phòng.')
@@ -54,14 +90,90 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
     if (durMin <= 0) return setErr('Loại ca chưa có thời lượng hợp lệ.')
     if (!editing && recurring && (!untilDate || untilDate < date)) return setErr('Hãy chọn ngày kết thúc lặp (từ ngày bắt đầu trở đi).')
 
+    if (editing && hasSeriesScope) {
+      setOpKind('save')
+      setOpScope(null)
+      setStep('scope')
+      armGuard()
+      return
+    }
+
+    executeSave('one')
+  }
+
+  function openDelete() {
+    setErr('')
+    setOpKind('delete')
+    if (hasSeriesScope) {
+      setOpScope(null)
+      setStep('scope')
+    } else {
+      setOpScope('one')
+      setStep('confirm')
+    }
+    armGuard()
+  }
+
+  function pickScope(scope) {
+    if (guardLocked || guardHit()) return
+    setOpScope(scope)
+    setStep('confirm')
+    armGuard()
+  }
+
+  function backFromConfirm() {
+    setErr('')
+    if (hasSeriesScope && step === 'confirm') {
+      setStep('scope')
+      setOpScope(null)
+    } else {
+      resetToForm()
+    }
+  }
+
+  function runConfirmed() {
+    if (busy || guardLocked || guardHit()) return
+    if (opKind === 'delete') doDelete(opScope)
+    else executeSave(opScope)
+  }
+
+  async function executeSave(scope = 'one') {
+    setErr('')
     setBusy(true)
     try {
       const base = {
-        renter_id: renterId, room_id: roomId, ca_type_id: caTypeId, ca_count: caCount,
-        start_time: start, end_time: end, note: note.trim(), paid,
+        renter_id: renterId,
+        room_id: roomId,
+        ca_type_id: caTypeId,
+        ca_count: caCount,
+        start_time: start,
+        end_time: end,
+        note: note.trim(),
       }
+
       if (editing) {
-        await data.updateBooking(booking.id, { ...base, date })
+        if (scope === 'from_date' && booking.series_id) {
+          const diffDays = Math.round((parseISODate(date) - parseISODate(booking.date)) / (1000 * 60 * 60 * 24))
+          await data.updateSeriesFromDate({
+            seriesId: booking.series_id,
+            fromDate: booking.date,
+            currentBookingId: booking.id,
+            baseData: base,
+            currentPaid: paid,
+            dateOffsetDays: diffDays,
+          })
+        } else if (scope === 'all' && booking.series_id) {
+          const diffDays = Math.round((parseISODate(date) - parseISODate(booking.date)) / (1000 * 60 * 60 * 24))
+          await data.updateSeriesAll({
+            seriesId: booking.series_id,
+            currentBookingId: booking.id,
+            baseData: base,
+            currentPaid: paid,
+            dateOffsetDays: diffDays,
+          })
+        } else {
+          await data.updateBooking(booking.id, { ...base, date, paid })
+        }
       } else if (recurring) {
         const seriesId = crypto.randomUUID()
         const rows = []
@@ -69,13 +181,13 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
         let d = parseISODate(date)
         let guard = 0
         while (d <= lastDate && guard < 400) {
-          rows.push({ ...base, date: toISODate(d), series_id: seriesId })
+          rows.push({ ...base, date: toISODate(d), series_id: seriesId, paid })
           d = addDays(d, 7)
           guard++
         }
         await data.addBookingSeries(rows)
       } else {
-        await data.addBooking({ ...base, date })
+        await data.addBooking({ ...base, date, paid })
       }
       onClose()
     } catch (e) {
@@ -85,10 +197,16 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
   }
 
   async function doDelete(scope) {
+    setErr('')
     setBusy(true)
     try {
-      if (scope === 'series' && booking.series_id) await data.deleteSeries(booking.series_id)
-      else await data.deleteBooking(booking.id)
+      if (scope === 'from_date' && booking?.series_id) {
+        await data.deleteSeriesFromDate(booking.series_id, booking.date)
+      } else if (scope === 'series' && booking?.series_id) {
+        await data.deleteSeries(booking.series_id)
+      } else {
+        await data.deleteBooking(booking.id)
+      }
       onClose()
     } catch (e) {
       setErr(e.message || 'Có lỗi khi xoá.')
@@ -96,28 +214,114 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
     }
   }
 
-  const footer = (
+  const inConfirmFlow = step === 'scope' || step === 'confirm'
+  const modalTitle = inConfirmFlow
+    ? opKind === 'delete' ? 'Xác nhận xoá' : 'Lưu thay đổi lịch'
+    : editing
+    ? 'Sửa buổi thuê'
+    : 'Thêm buổi thuê'
+
+  const confirmText = opKind === 'delete'
+    ? opScope === 'from_date'
+      ? `Bạn có chắc muốn xoá từ buổi ngày ${dLabel} đến hết chuỗi? Các buổi học trước ngày này sẽ được giữ nguyên.`
+      : opScope === 'series'
+      ? 'Bạn có chắc muốn xoá toàn bộ chuỗi, kể cả các buổi trong quá khứ? Hành động này không thể hoàn tác.'
+      : `Bạn có chắc muốn xoá buổi ngày ${dLabel}?`
+    : opScope === 'from_date'
+    ? `Bạn có chắc muốn áp dụng thay đổi từ ngày ${dLabel} trở đi? Các buổi học trước ngày này sẽ giữ nguyên.`
+    : opScope === 'all'
+    ? 'Bạn có chắc muốn áp dụng thay đổi cho tất cả các buổi trong chuỗi?'
+    : `Bạn có chắc muốn áp dụng thay đổi chỉ cho buổi ngày ${dLabel}?`
+
+  // Footer luôn hiện diện (giữ nguyên .modal-foot) để modal không co rút chiều cao
+  const footer = inConfirmFlow ? (
+    <>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        onClick={step === 'confirm' ? backFromConfirm : resetToForm}
+        disabled={busy}
+      >
+        Quay lại
+      </button>
+      <div className="spacer" />
+      {step === 'confirm' && (
+        <button
+          type="button"
+          className={'btn ' + (opKind === 'delete' ? 'btn-danger' : 'btn-primary')}
+          onClick={runConfirmed}
+          disabled={busy || guardLocked}
+        >
+          {busy ? 'Đang xử lý…' : opKind === 'delete' ? 'Xác nhận xoá' : 'Xác nhận lưu'}
+        </button>
+      )}
+    </>
+  ) : (
     <>
       {editing && (
-        <button className="btn btn-danger-ghost" onClick={() => setConfirmDelete(true)} disabled={busy}>Xoá</button>
+        <button type="button" className="btn btn-danger-ghost" onClick={openDelete} disabled={busy}>Xoá</button>
       )}
       <div className="spacer" />
-      <button className="btn btn-ghost" onClick={onClose} disabled={busy}>Huỷ</button>
-      <button className="btn btn-primary" onClick={onSave} disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu'}</button>
+      <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>Huỷ</button>
+      <button type="button" className="btn btn-primary" onClick={onSave} disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu'}</button>
     </>
   )
 
   return (
-    <Modal title={editing ? 'Sửa buổi thuê' : 'Thêm buổi thuê'} onClose={onClose} footer={footer}>
-      {confirmDelete ? (
+    <Modal title={modalTitle} onClose={onClose} footer={footer} showClose={false}>
+      {step === 'scope' ? (
         <div className="confirm-box">
-          <p>Bạn muốn xoá buổi thuê này?</p>
-          {booking.series_id && <p className="muted">Buổi này thuộc một chuỗi lặp hằng tuần.</p>}
-          <div className="confirm-actions">
-            <button className="btn btn-ghost" onClick={() => setConfirmDelete(false)}>Quay lại</button>
-            <button className="btn btn-danger" onClick={() => doDelete('one')}>Chỉ buổi này</button>
-            {booking.series_id && <button className="btn btn-danger" onClick={() => doDelete('series')}>Cả chuỗi</button>}
+          <p><b>{opKind === 'delete' ? 'Xoá buổi thuê' : 'Lưu thay đổi lịch'}</b></p>
+          <p className="muted">
+            Buổi này thuộc một chuỗi lặp hằng tuần. Bạn muốn {opKind === 'delete' ? 'xoá' : 'áp dụng thay đổi cho'}:
+          </p>
+          {opKind === 'delete' ? (
+            <div className="confirm-actions-col">
+              <button type="button" className="choice-btn" onClick={() => pickScope('one')} disabled={busy || guardLocked}>
+                <span className="choice-title">Chỉ buổi này</span>
+                <span className="choice-sub">Chỉ xoá buổi ngày {dLabel}</span>
+              </button>
+              <button type="button" className="choice-btn choice-danger" onClick={() => pickScope('from_date')} disabled={busy || guardLocked}>
+                <span className="choice-title">Từ buổi này trở đi</span>
+                <span className="choice-sub">
+                  Xoá từ ngày {dLabel} đến hết chuỗi (<b>giữ nguyên các buổi trước đó</b>)
+                </span>
+              </button>
+              <button type="button" className="choice-btn choice-danger-subtle" onClick={() => pickScope('series')} disabled={busy || guardLocked}>
+                <span className="choice-title">Toàn bộ chuỗi</span>
+                <span className="choice-sub">
+                  ⚠️ Xoá tất cả các buổi trong chuỗi, <b>kể cả các buổi trong quá khứ</b>
+                </span>
+              </button>
+            </div>
+          ) : (
+            <div className="confirm-actions-col">
+              <button type="button" className="choice-btn" onClick={() => pickScope('one')} disabled={busy || guardLocked}>
+                <span className="choice-title">Chỉ buổi này</span>
+                <span className="choice-sub">Chỉ áp dụng cho buổi ngày {dLabel}</span>
+              </button>
+              <button type="button" className="choice-btn choice-primary" onClick={() => pickScope('from_date')} disabled={busy || guardLocked}>
+                <span className="choice-title">Từ buổi này trở đi</span>
+                <span className="choice-sub">
+                  Đổi phòng/thông tin từ ngày {dLabel} đến hết chuỗi (<b>giữ nguyên lịch cũ các tháng trước</b>)
+                </span>
+              </button>
+              <button type="button" className="choice-btn" onClick={() => pickScope('all')} disabled={busy || guardLocked}>
+                <span className="choice-title">Tất cả các buổi trong chuỗi</span>
+                <span className="choice-sub">Áp dụng cho toàn bộ các buổi trong chuỗi</span>
+              </button>
+            </div>
+          )}
+          {err && <div className="form-error full" style={{ marginTop: 12 }}>{err}</div>}
+        </div>
+      ) : step === 'confirm' ? (
+        <div className="confirm-box">
+          <p><b>{opKind === 'delete' ? 'Xác nhận xoá' : 'Xác nhận lưu thay đổi'}</b></p>
+          <p className="muted">{confirmText}</p>
+          <div className={'confirm-summary' + (opKind === 'delete' ? ' is-danger' : '')}>
+            {opKind === 'delete' ? 'Hành động xoá sẽ được thực hiện ngay sau khi bạn xác nhận.' : 'Thông tin mới sẽ được cập nhật ngay sau khi bạn xác nhận.'}
           </div>
+          {err && <div className="form-error full" style={{ marginTop: 12 }}>{err}</div>}
         </div>
       ) : (
         <div className="form-grid">
@@ -127,8 +331,8 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
               <div className="inline-add">
                 <input autoFocus value={newRenter} onChange={(e) => setNewRenter(e.target.value)}
                   placeholder="Tên người thuê mới" onKeyDown={(e) => e.key === 'Enter' && addQuickRenter()} />
-                <button className="btn btn-sm btn-primary" onClick={addQuickRenter}>Thêm</button>
-                <button className="btn btn-sm btn-ghost" onClick={() => setShowNewRenter(false)}>✕</button>
+                <button type="button" className="btn btn-sm btn-primary" onClick={addQuickRenter}>Thêm</button>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setShowNewRenter(false)}>✕</button>
               </div>
             ) : (
               <div className="inline-add">
@@ -136,7 +340,7 @@ export default function BookingModal({ booking, presetDate, presetRoomId, preset
                   <option value="">— Chọn người thuê —</option>
                   {renters.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
-                <button className="btn btn-sm btn-ghost" onClick={() => setShowNewRenter(true)}>＋ Mới</button>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setShowNewRenter(true)}>＋ Mới</button>
               </div>
             )}
           </div>

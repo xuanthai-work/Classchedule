@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
-import { toHM } from '../lib/date'
+import { toHM, toISODate, parseISODate, addDays } from '../lib/date'
 
 const DataContext = createContext(null)
 
@@ -84,14 +84,91 @@ export function DataProvider({ children }) {
       await refresh()
     },
     async deleteBooking(id) {
-      const { error } = await supabase.from('bookings').delete().eq('id', id)
-      if (error) throw error
       setBookings((b) => b.filter((x) => x.id !== id))
+      const { error } = await supabase.from('bookings').delete().eq('id', id)
+      if (error) {
+        await refresh()
+        throw error
+      }
     },
     async deleteSeries(seriesId) {
-      const { error } = await supabase.from('bookings').delete().eq('series_id', seriesId)
-      if (error) throw error
       setBookings((b) => b.filter((x) => x.series_id !== seriesId))
+      const { error } = await supabase.from('bookings').delete().eq('series_id', seriesId)
+      if (error) {
+        await refresh()
+        throw error
+      }
+    },
+    async deleteSeriesFromDate(seriesId, fromDate) {
+      if (!seriesId || !fromDate) return
+      setBookings((b) => b.filter((x) => !(x.series_id === seriesId && x.date >= fromDate)))
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('series_id', seriesId)
+        .gte('date', fromDate)
+      if (error) {
+        await refresh()
+        throw error
+      }
+    },
+    async updateSeriesFromDate({ seriesId, fromDate, currentBookingId, baseData, currentPaid, dateOffsetDays = 0 }) {
+      if (!seriesId || !fromDate) return
+      const targets = bookings.filter((b) => b.series_id === seriesId && b.date >= fromDate)
+      if (!targets.length) return
+
+      const newSeriesId = crypto.randomUUID()
+      const updates = targets.map((b) => {
+        const isCurrent = b.id === currentBookingId
+        const shiftedDate = dateOffsetDays === 0
+          ? b.date
+          : toISODate(addDays(parseISODate(b.date), dateOffsetDays))
+
+        const payload = {
+          ...baseData,
+          date: shiftedDate,
+          series_id: newSeriesId,
+          paid: isCurrent ? currentPaid : b.paid,
+        }
+
+        return supabase.from('bookings').update(payload).eq('id', b.id)
+      })
+
+      const results = await Promise.all(updates)
+      const firstErr = results.find((r) => r.error)?.error
+      if (firstErr) {
+        await refresh()
+        throw firstErr
+      }
+      await refresh()
+    },
+    async updateSeriesAll({ seriesId, currentBookingId, baseData, currentPaid, dateOffsetDays = 0 }) {
+      if (!seriesId) return
+      const targets = bookings.filter((b) => b.series_id === seriesId)
+      if (!targets.length) return
+
+      const updates = targets.map((b) => {
+        const isCurrent = b.id === currentBookingId
+        const shiftedDate = dateOffsetDays === 0
+          ? b.date
+          : toISODate(addDays(parseISODate(b.date), dateOffsetDays))
+
+        const payload = {
+          ...baseData,
+          date: shiftedDate,
+          paid: isCurrent ? currentPaid : b.paid,
+        }
+
+        return supabase.from('bookings').update(payload).eq('id', b.id)
+      })
+
+      const results = await Promise.all(updates)
+      const firstErr = results.find((r) => r.error)?.error
+      if (firstErr) {
+        await refresh()
+        throw firstErr
+      }
+      await refresh()
     },
     async deleteBookings(ids) {
       if (!ids || !ids.length) return

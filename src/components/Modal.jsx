@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-export default function Modal({ title, onClose, children, footer, className = '' }) {
+export default function Modal({ title, onClose, children, footer, className = '', showClose = true }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -16,7 +16,9 @@ export default function Modal({ title, onClose, children, footer, className = ''
       <div className={'modal' + (className ? ' ' + className : '')} onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Đóng">✕</button>
+          {showClose && (
+            <button type="button" className="icon-btn" onClick={onClose} aria-label="Đóng">✕</button>
+          )}
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}

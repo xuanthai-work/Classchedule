@@ -19,3 +19,10 @@ Lịch thuê lớp Tháng 7.xlsx
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# Task runner
+justdoit.md
+
+# CodeGraph
+.codegraph/
+
