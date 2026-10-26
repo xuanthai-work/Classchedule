@@ -3,6 +3,13 @@ import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
 import ColorSwatches from '../components/ColorSwatches'
 import { RENTER_COLORS } from '../lib/constants'
+import { useTheme, setTheme } from '../lib/theme'
+
+const THEME_OPTIONS = [
+  { key: 'light', icon: '☀️', label: 'Sáng' },
+  { key: 'dark', icon: '🌙', label: 'Tối' },
+  { key: 'system', icon: '💻', label: 'Hệ thống' },
+]
 
 function CaTypeRow({ ca, onSave, onDelete }) {
   const [name, setName] = useState(ca.name)
@@ -82,6 +89,7 @@ function RoomRow({ room, onSave, onDelete }) {
 export default function Settings() {
   const { rooms, caTypes, tasks, addRoom, updateRoom, deleteRoom, addCaType, updateCaType, deleteCaType, addTask, toggleTask, deleteTask } = useData()
   const { user, signOut } = useAuth()
+  const [theme] = useTheme()
   const [newTask, setNewTask] = useState('')
   const [notif, setNotif] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
 
@@ -170,6 +178,24 @@ export default function Settings() {
               </label>
               <button className="icon-btn sm" onClick={() => deleteTask(t.id)} aria-label="Xoá">✕</button>
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings-block">
+        <h3>Giao diện</h3>
+        <p className="muted sm">Chọn trình bày sáng / tối. Chế độ “Hệ thống” tự theo cài đặt máy của bạn và tự cập nhật khi máy đổi.</p>
+        <div className="theme-options" role="group" aria-label="Chọn giao diện">
+          {THEME_OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              className={'theme-opt' + (theme === o.key ? ' active' : '')}
+              onClick={() => setTheme(o.key)}
+              aria-pressed={theme === o.key}
+            >
+              <span>{o.icon}</span>
+              <span>{o.label}</span>
+            </button>
           ))}
         </div>
       </section>

@@ -6,6 +6,13 @@
     <meta name="theme-color" content="#0E7C6B" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Classchedule — Lịch thuê lớp</title>
+    <script>
+      // Áp theme đã lưu trước khi React mount — tránh lóe nền sai tông khi tải lại trang
+      try {
+        var t = localStorage.getItem('classchedule_theme')
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t)
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext'
 import { useReminders } from '../lib/useReminders'
+import { useTheme, toggleTheme } from '../lib/theme'
 
 const NAV = [
   { key: 'calendar', label: 'Lịch', icon: '🗓️' },
@@ -11,6 +12,8 @@ const NAV = [
 export default function Layout({ view, setView, children }) {
   const { user, signOut } = useAuth()
   useReminders()
+  const [theme, effective] = useTheme()
+  const dark = effective === 'dark'
 
   return (
     <div className="app-shell">
@@ -37,6 +40,14 @@ export default function Layout({ view, setView, children }) {
           </nav>
           <div className="topbar-user">
             <span className="user-email" title={user?.email}>{user?.email}</span>
+            <button
+              className="icon-btn theme-toggle"
+              onClick={toggleTheme}
+              aria-label={dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+              title={dark ? 'Giao diện sáng' : 'Giao diện tối'}
+            >
+              {dark ? '☀️' : '🌙'}
+            </button>
             <button className="btn btn-ghost btn-sm" onClick={signOut}>Đăng xuất</button>
           </div>
         </div>

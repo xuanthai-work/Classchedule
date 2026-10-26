@@ -223,7 +223,6 @@ export default function Calendar() {
                           width: `calc(${100 / lanes}% - 4px)`,
                           background: renter?.color || '#888',
                           color: readableText(renter?.color),
-                          borderLeftColor: 'rgba(0,0,0,.22)',
                         }}
                         onClick={() => setModal({ booking: b })}
                         title={`${renter?.name || ''} · ${fmtTime(b.start_time)}–${fmtTime(b.end_time)} · ${room?.name || ''}`}

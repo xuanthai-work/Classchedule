@@ -23,4 +23,5 @@ docs/
 - [2026-10-09: Loại bỏ Nút Đóng '✕' ở Header cho Modal Buổi Thuê (BookingModal)](tasks/2026-10-09-hide-close-button-in-booking-modal.md) — QA PASS
 - [2026-10-26: Mở rộng Bảng Màu Nhận Diện Người Thuê Lên 24 Màu Tuyển Chọn](tasks/2026-10-26-expand-renter-colors-to-24.md) — QA PASS
 - [2026-10-26: Tích hợp Nhận Diện Thương Hiệu Concept 1 (Logo Classchedule) vào Giao Diện Header](tasks/2026-10-26-integrate-concept-1-logo-to-header.md) — QA PASS
+- [2026-10-26: Tối Ưu 24 Màu Tương Phản Chuẩn WCAG và Bổ Sung Bộ Chuyển Giao Diện (Theme Switcher Sáng / Tối)](tasks/2026-10-26-calibrate-colors-and-theme-switcher.md) — QA PASS
 
