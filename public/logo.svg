@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" width="240" height="48" fill="none">
+  <!-- Brand Icon -->
+  <g transform="translate(2, 2)">
+    <rect width="44" height="44" rx="12" fill="#0E7C6B"/>
+    <!-- Isometric Room / Calendar Block -->
+    <path d="M22 8 L35 15.5 L22 23 L9 15.5 Z" fill="#DCEEE9" fill-opacity="0.95"/>
+    <path d="M9 15.5 L22 23 L22 37 L9 29.5 Z" fill="#0A5C50"/>
+    <path d="M35 15.5 L35 29.5 L22 37 L22 23 Z" fill="#134E43"/>
+    
+    <!-- Accent Slot -->
+    <path d="M28 13.5 L34 17 L30 19 L24 15.5 Z" fill="#B8720F" fill-opacity="0.9"/>
+    
+    <!-- Monogram C -->
+    <path d="M25 18 C23.5 17 22 16.5 20 16.5 C16.5 16.5 13.8 19.2 13.8 22.8 C13.8 26.4 16.5 29.2 20 29.2 C22.5 29.2 24.2 28.2 25.5 27" 
+          stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="26" cy="19.5" r="1.6" fill="#F6C48C"/>
+  </g>
+  
+  <!-- Wordmark -->
+  <text x="56" y="31" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif" 
+        font-size="22" font-weight="700" letter-spacing="-0.5" fill="#15211D">
+    Class<tspan fill="#0E7C6B">chedule</tspan>
+  </text>
+</svg>

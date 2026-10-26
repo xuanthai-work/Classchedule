@@ -16,9 +16,12 @@ export default function Layout({ view, setView, children }) {
     <div className="app-shell">
       <header className="topbar">
         <div className="topbar-inner">
-          <div className="topbar-brand">
-            <span className="brand-mark">🗓️</span>
-            <span className="brand-name">Lịch thuê lớp</span>
+          <div className="topbar-brand" onClick={() => setView('calendar')} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setView('calendar') } }}>
+            <span className="brand-mark">
+              <img src="/favicon.svg" alt="Classchedule Logo" width="28" height="28" />
+            </span>
+            <span className="brand-name">Classchedule</span>
           </div>
           <nav className="topnav">
             {NAV.map((n) => (

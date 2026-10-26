@@ -12,6 +12,18 @@ export const RENTER_COLORS = [
   '#D3B8E8', // tím pastel
   '#EEB4DC', // hồng pastel
   '#F2AEC0', // hồng đỏ pastel
+  '#F5B7B1', // hồng đất pastel
+  '#F8C471', // vàng hổ phách pastel
+  '#F9E79F', // vàng kem pastel
+  '#D4EFDF', // xanh bạc hà pastel
+  '#A3E4D7', // xanh ngọc pastel
+  '#A2D9CE', // bọt biển pastel
+  '#AED6F1', // xanh baby pastel
+  '#85C1E9', // xanh đại dương pastel
+  '#BB8FCE', // tím thạch anh pastel
+  '#E8DAEF', // tím tử đinh hương pastel
+  '#EDBB99', // cam đất pastel
+  '#CCD1D1', // xám bạc pastel
 ]
 
 // Chọn màu chữ (trắng/đen) đọc rõ nhất trên nền màu bất kỳ

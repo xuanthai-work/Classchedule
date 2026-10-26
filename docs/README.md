@@ -21,4 +21,6 @@ docs/
 
 - [2026-10-09: Khắc phục lỗi Ghost-Click và Xây dựng Popup Xác nhận Chuẩn cho 3 Kiểu Xoá & 3 Kiểu Đổi](tasks/2026-10-09-fix-ghost-click-and-2-step-confirm.md) — QA PASS
 - [2026-10-09: Loại bỏ Nút Đóng '✕' ở Header cho Modal Buổi Thuê (BookingModal)](tasks/2026-10-09-hide-close-button-in-booking-modal.md) — QA PASS
+- [2026-10-26: Mở rộng Bảng Màu Nhận Diện Người Thuê Lên 24 Màu Tuyển Chọn](tasks/2026-10-26-expand-renter-colors-to-24.md) — QA PASS
+- [2026-10-26: Tích hợp Nhận Diện Thương Hiệu Concept 1 (Logo Classchedule) vào Giao Diện Header](tasks/2026-10-26-integrate-concept-1-logo-to-header.md) — QA PASS
 
